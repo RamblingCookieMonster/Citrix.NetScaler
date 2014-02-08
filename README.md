@@ -5,11 +5,11 @@ PowerShell module for working with Citrix NetScaler REST API
 
 # Instructions
 
-1 Place the Citrix.NetScaler folder somewhere on your system
-2 Run AutogenFunctions.ps1 with the appropriate arguments.
-    * NOTE:  For more information, run Get-Help \\path\to\Citrix.NetScaler\AutogenFunctions.ps1
-3 Copy resulting folder to an appropriate module location
-4 Import-Module Citrix.NetScaler
+1. Place the Citrix.NetScaler folder somewhere on your system
+2. Run AutogenFunctions.ps1 with the appropriate arguments.
+  * NOTE:  For more information, run Get-Help \\path\to\Citrix.NetScaler\AutogenFunctions.ps1
+3. Copy resulting folder to an appropriate module location
+4. Import-Module Citrix.NetScaler
         
         
 # Further References
