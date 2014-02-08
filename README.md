@@ -82,15 +82,17 @@ After running the second example, the following files are available in \\path\to
 
 ## Property name bug:
 
-    #NOTE:  If you get an error indicating  'select : Property "some property" cannot be found.', please use the -Raw switch on the command.  For example:
+If you get an error indicating  'select : Property "some property" cannot be found.', please use the -Raw switch on the command.
+
+The issue is that in general, the NetScaler API returns the object type name (ns).  In some cases, it does not do this.  e.g. The stat with the name ns returns nstrace, instead of ns.
+
+    #I get an error from command below:  'select : Property "ns" cannot be found.'
     Get-NSnsStat -Address ctx-ns-tst-01 -WebSession $session -AllowHTTPAuth
-        #select : Property "ns" cannot be found.
         
-    #The issue is that in general, the NetScaler API returns the object type name (ns).
-    #In some cases, it does not do this.  e.g. ns returns nstrace.  This works:
+    #Adding the -raw switch, I can get the unadulterated Invoke-RESTMethod results, which include an nstrace property:
     Get-NSnsStat -Address ctx-ns-tst-01 -WebSession $session -AllowHTTPAuth -Raw
     
-    #To extract the property, I would run this
+    #To extract the nstrace property, I would run this
     Get-NSnsStat -Address ctx-ns-tst-01 -WebSession $session -AllowHTTPAuth -Raw | Select -expandproperty nstrace
    
 # Further References
@@ -99,5 +101,6 @@ After running the second example, the following files are available in \\path\to
 * http://support.citrix.com/proddocs/topic/netscaler-main-api-10-map/ns-nitro-rest-landing-page-con.html
 * http://support.citrix.com/servlet/KbServlet/download/30602-102-681756/NS-Nitro-Gettingstarted-guide.pdf
 * http://blogs.citrix.com/2014/02/04/using-curl-with-the-netscaler-nitro-rest-api/
-* There is no NetScaler REST API documentation available online.  It is tucked deep in the NetScaler bits.  If you have the bits for 10.1, extract them from here:  build-10.1-119.7_nc.tgz\build_dara_119_7_nc.tar\ns-10.1-119.7-nitro-rest.tgz\ns-10.1-119.7-nitro-rest.tar\ns_nitro-rest_dara_119_7.tar\
-* My first stab at this is published in the TechNet Gallery, might be more information there:  http://gallery.technet.microsoft.com/scriptcenter/Invoke-NSCustomQuery-67dd27b5
+* There is no NetScaler REST API documentation available online.  It is tucked deep in the NetScaler bits.  If you have the bits for 10.1, extract them from here:  build-10.1-119.7_nc.tgz\build_dara_119_7_nc.tar\ns-10.1-119.7-nitro-rest.tgz\ns-10.1-119.7-nitro-rest.tar\ns_nitro-rest_dara_119_7.tar\.  This should be available online at some point...
+* My first stab at this is published in the TechNet Gallery, more information and screenshots with similar data can be [found here](http://gallery.technet.microsoft.com/scriptcenter/Invoke-NSCustomQuery-67dd27b5)
+
