@@ -215,7 +215,7 @@ else{
     $nsobjectpath = Join-Path $FunctionsPath Get-NSObjectList.ps1
     $nssessionpath = Join-Path $FunctionsPath Get-NSSessionCookie.ps1
     foreach($file in @($nsobjectpath, $nssessionpath)){
-        $content = ( Get-Content $file ).replace('"CTX-NS-01","CTX-NS-02","CTX-NS-03","CTX-NS-04","CTX-NS-TST-01","CTX-NS-TST-02"',$allNetScalerAddressesString).Replace('Address = "CTX-NS-TST-01"',"Address = `"$defaultNetScalerAddress`"")
+        $content = ( Get-Content $file ).replace('$Address = $null',"[validateset($allNetScalerAddressesString)]`n        `$Address = `$null").Replace('$Address = $null',"`$Address = `"$defaultNetScalerAddress`"")
         Set-Content $file $content -force
     }
 

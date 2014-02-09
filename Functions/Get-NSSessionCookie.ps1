@@ -28,9 +28,7 @@
     [cmdletbinding()]
     param
     (
-    
-        [validateset("CTX-NS-01","CTX-NS-02","CTX-NS-03","CTX-NS-04","CTX-NS-TST-01","CTX-NS-TST-02")]
-        [string]$Address = "CTX-NS-TST-01",
+        [string]$Address = $null,
 
         [System.Management.Automation.PSCredential]$Credential = $( Get-Credential -Message "Provide credentials for $Address" ),
 

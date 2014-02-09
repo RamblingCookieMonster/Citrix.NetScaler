@@ -5,9 +5,10 @@ This is a work in progress module for working with the Citrix NetScaler REST API
 
 # Instructions
 
-1. Place the Citrix.NetScaler folder somewhere on your system
+1. Download this repo, Unblock the file(s), rename folder from Citrix.NetScaler-master to Citrix.NetScaler
 2. Run AutogenFunctions.ps1 with the appropriate arguments.
   * NOTE:  For more information, run Get-Help \\path\to\Citrix.NetScaler\AutogenFunctions.ps1
+  * NOTE:  You may skip this step until later if desired.  Details in example.
 3. Copy resulting folder to an appropriate module location
 4. Import-Module Citrix.NetScaler
         
@@ -19,12 +20,21 @@ Here are a few examples on how you might run the autogenfuntions.ps1 script
     # WARNING: generates 900 + functions, sends credentials in the clear!
         & "\\path\to\Citrix.NetScaler\AutogenFunctions.ps1" -Address YourNetScalerAddressHere -AllowHTTPAuth
    
+		# Explore first
+				#Import the module
+				    Import-Module "\\path\to\Citrix.NetScaler"
+				
+				#Create a session on CTX-NS-TST-01, get a list of config objects
+				#WARNING: creds sent in clear text when using AllowHTTPAuth!
+			      $session = Get-NSSessionCookie -Address ctx-ns-tst-01 -AllowHTTPAuth
+				    Get-NSObjectList -Address ctx-ns-tst-01 -WebSession $session -ObjectType config -AllowHTTPAuth
+				    
+        # From the list of objects, we decide we care about only a few...
+        # Limit all functions to the address set "ctx-ns-tst-02", "ctx-ns-tst-01", set default address to "ctx-ns-tst-01", ONLY create functions for server, lbvserver, service, servicegroup, and ns objects
+        # WARNING: sends credentials in the clear!
+            & \\path\to\Citrix.NetScaler\AutogenFunctions.ps1 -address "CTX-NS-TST-02" -AllowHTTPAuth -allNetScalerAddresses "ctx-ns-tst-02", "ctx-ns-tst-01" -defaultNetScalerAddress "ctx-ns-tst-01" -FunctionList server, lbvserver, service, servicegroup, ns
 
-    # Limit all functions to address set "ctx-ns-tst-02", "ctx-ns-tst-01", set default address to "ctx-ns-tst-01", ONLY create functions for server, lbvserver, service, servicegroup, and ns objects
-    # WARNING: sends credentials in the clear!
-    & \\path\to\Citrix.NetScaler\AutogenFunctions.ps1 -address "CTX-NS-TST-02" -AllowHTTPAuth -allNetScalerAddresses "ctx-ns-tst-02", "ctx-ns-tst-01" -defaultNetScalerAddress "ctx-ns-tst-01" -FunctionList server, lbvserver, service, servicegroup, ns
-
-After running the second example, the following files are available in \\path\to\Citrix.NetScaler\AutogenFunction:
+After running the last example, the following files are available in \\path\to\Citrix.NetScaler\AutogenFunction:
 * Get-NSlbvserverConfig
 * Get-NSlbvserverStat
 * Get-NSnsStat
@@ -58,6 +68,9 @@ After running the second example, the following files are available in \\path\to
     #Create a session on CTX-NS-TST-01.  WARNING: creds sent in clear text when using AllowHTTPAuth!
 			  $session = Get-NSSessionCookie -Address ctx-ns-tst-01 -AllowHTTPAuth
     
+    #Get a list of all config objects on CTX-NS-TST-01
+			  Get-NSObjectList -Address ctx-ns-tst-01 -WebSession $session -ObjectType config -AllowHTTPAuth
+    
     #Get some server information
         Get-NSserverConfig -Address ctx-ns-tst-01 -WebSession $session -AllowHTTPAuth | select Name, State, Domain
         
@@ -79,6 +92,18 @@ After running the second example, the following files are available in \\path\to
 				svc_someservice2                0 servername2       HTTP            0           
 				...
     #>
+
+## Base Functions
+
+These functions are available independent of the automatic generation of functions. 
+
+### Get-NSSessionCookie
+
+This command creates a session on a Citrix NetScaler.  You can use this session until it expires for all the commands in this module, as well as any other commands you run against a NetScaler.
+
+### Get-NSObjectList
+
+This command retrieves a list of configuration (config) or statistical (stat) objects that NetScaler commands revolve around.  There are 876 configuration objects and 85 stat objects.  You can narrow these down when you call AutogenFunctions using the FunctionList argument.
 
 ## Property name bug:
 
@@ -104,3 +129,6 @@ The issue is that in general, the NetScaler API returns the object type name (ns
 * There is no NetScaler REST API documentation available online.  It is tucked deep in the NetScaler bits.  If you have the bits for 10.1, extract them from here:  build-10.1-119.7_nc.tgz\build_dara_119_7_nc.tar\ns-10.1-119.7-nitro-rest.tgz\ns-10.1-119.7-nitro-rest.tar\ns_nitro-rest_dara_119_7.tar\.  This should be available online at some point...
 * My first stab at this is published in the TechNet Gallery, more information and screenshots with similar data can be [found here](http://gallery.technet.microsoft.com/scriptcenter/Invoke-NSCustomQuery-67dd27b5)
 
+* Other notes
+
+This is my first GitHub repo and second day (as of initial release) with the NetScaler REST API.  Please let me know if you have any suggestions or feedback!

@@ -48,8 +48,16 @@ $files = foreach($folder in $foldersToImport)
     }
     else
     {
-        Throw "Expected '$folder'.  Where is it?"
-        Break
+        if($folder -eq "Functions")
+        {
+            Throw "Expected '$folder'.  Where is it?"
+            Break
+        }
+        else
+        {
+            Write-Warning "AutogenFunctions folder not found.`nOnly imported base functions.`nRead instructions for details on auto-generating functions or run Get-Help '$ModPath\AutogenFunctions.ps1' -full"
+        }
+        
     }
 }
 
