@@ -1,15 +1,14 @@
 Citrix.NetScaler
 ================
 
-This is a work in progress module for working with the Citrix NetScaler REST API.  It is currently limited to retrieving information from a NetScaler.
+This is a work in progress module for working with the Citrix NetScaler REST API.  It is currently limited to creating sessions on and retrieving information from a NetScaler.  Individual functions can be automatically created with the AutogenFunctions script.
 
 # Instructions
 
-1. Download this repo, Unblock the file(s), rename folder from Citrix.NetScaler-master to Citrix.NetScaler
-2. Run AutogenFunctions.ps1 with the appropriate arguments.
+1. Download this repo, Unblock the file(s), copy the Citrix.NetScaler to an appropriate module location
+2. Run Citrix.NetScaler\AutogenFunctions.ps1 with the appropriate arguments to generate functions.
   * NOTE:  For more information, run Get-Help \\path\to\Citrix.NetScaler\AutogenFunctions.ps1
   * NOTE:  You may skip this step until later if desired.  Details in example.
-3. Copy resulting folder to an appropriate module location
 4. Import-Module Citrix.NetScaler
         
 # Autogenerating Functions
@@ -17,7 +16,7 @@ This is a work in progress module for working with the Citrix NetScaler REST API
 Here are a few examples on how you might run the autogenfuntions.ps1 script
 
     # Quick and Dirty!
-		    # WARNING: generates 900 + functions, sends credentials in the clear!
+		    # WARNING: generates all 900 + functions, sends credentials in the clear
         & "\\path\to\Citrix.NetScaler\AutogenFunctions.ps1" -Address YourNetScalerAddressHere -AllowHTTPAuth
    
     # Explore first
@@ -25,7 +24,7 @@ Here are a few examples on how you might run the autogenfuntions.ps1 script
         Import-Module "\\path\to\Citrix.NetScaler"
 				
         #Create a session on CTX-NS-TST-01, get a list of config objects
-        #WARNING: creds sent in clear text when using AllowHTTPAuth!
+        #WARNING: creds sent in clear text when using AllowHTTPAuth
         $session = Get-NSSessionCookie -Address ctx-ns-tst-01 -AllowHTTPAuth
         Get-NSObjectList -Address ctx-ns-tst-01 -WebSession $session -ObjectType config -AllowHTTPAuth
 				    
@@ -46,7 +45,7 @@ After running the last example, the following files are available in \\path\to\C
 
 # Using the Citrix.NetScaler module
 
-    #After you have followed instructions, Import the module!
+    #Import the module!
     Import-Module Citrix.NetScaler
     
     #Get commands from the module.  Output below is from the second autogenerating example:
@@ -66,12 +65,12 @@ After running the last example, the following files are available in \\path\to\C
         #>
     
     #Create a session on CTX-NS-TST-01.  WARNING: creds sent in clear text when using AllowHTTPAuth!
-            $session = Get-NSSessionCookie -Address ctx-ns-tst-01 -AllowHTTPAuth
+        $session = Get-NSSessionCookie -Address ctx-ns-tst-01 -AllowHTTPAuth
     
     #Get a list of all config objects on CTX-NS-TST-01
-            Get-NSObjectList -Address ctx-ns-tst-01 -WebSession $session -ObjectType config -AllowHTTPAuth
+        Get-NSObjectList -Address ctx-ns-tst-01 -WebSession $session -ObjectType config -AllowHTTPAuth
     
-    #Get some server information
+    #Get basic server config information
         Get-NSserverConfig -Address ctx-ns-tst-01 -WebSession $session -AllowHTTPAuth | select Name, State, Domain
         
         <#
@@ -99,7 +98,7 @@ These functions are available independent of the automatic generation of functio
 
 ### Get-NSSessionCookie
 
-This command creates a session on a Citrix NetScaler.  You can use this session until it expires for all the commands in this module, as well as any other commands you run against a NetScaler.
+This command creates a session on a Citrix NetScaler.  You can use this session until it expires for all the commands in this module, as well as any other REST API calls you run against that NetScaler.
 
 ### Get-NSObjectList
 
@@ -119,6 +118,14 @@ The issue is that in general, the NetScaler API returns the object type name (ns
     
     #To extract the nstrace property, I would run this
     Get-NSnsStat -Address ctx-ns-tst-01 -WebSession $session -AllowHTTPAuth -Raw | Select -expandproperty nstrace
+
+# TODO
+
+* Functions for configuration changes; for example, Enable/Disabled/Add/Remove-LBVServer/Server, etc.
+* Update [Invoke-NSCustomQuery](http://gallery.technet.microsoft.com/scriptcenter/Invoke-NSCustomQuery-67dd27b5) to leverage sessions and add functionality, add it to this module
+* Further testing, improving existing functionality (e.g. rather than static response handling that breaks Get-NSnsStat, write dynamic response handling)
+* Separate out autogeneration FunctionList argument so that Config and Stat functions can be chosen independently.  As is, 'service' pulls both Get-NSserviceConfig and Get-NSserviceStat
+* Learn how to use GitHub
    
 # Further References
  
@@ -127,7 +134,7 @@ The issue is that in general, the NetScaler API returns the object type name (ns
 * http://support.citrix.com/servlet/KbServlet/download/30602-102-681756/NS-Nitro-Gettingstarted-guide.pdf
 * http://blogs.citrix.com/2014/02/04/using-curl-with-the-netscaler-nitro-rest-api/
 * There is no NetScaler REST API documentation available online.  It is tucked deep in the NetScaler bits.  If you have the bits for 10.1, extract them from here:  build-10.1-119.7_nc.tgz\build_dara_119_7_nc.tar\ns-10.1-119.7-nitro-rest.tgz\ns-10.1-119.7-nitro-rest.tar\ns_nitro-rest_dara_119_7.tar\.  This should be available online at some point...
-* My first stab at this is published in the TechNet Gallery, more information and screenshots with similar data can be [found here](http://gallery.technet.microsoft.com/scriptcenter/Invoke-NSCustomQuery-67dd27b5)
+* My first stab at using this API is published in the TechNet Gallery, more information and screenshots with similar data can be [found here](http://gallery.technet.microsoft.com/scriptcenter/Invoke-NSCustomQuery-67dd27b5)
 
 # Other notes
 
