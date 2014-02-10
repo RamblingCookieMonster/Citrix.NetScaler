@@ -268,8 +268,8 @@ foreach($configtype in $types){
         #Change this name as well if desired by moving around configname and configtype
         $filepath = Join-Path $AutogenFunctionsPath "Get-NS$configname$configtype.ps1"
         
-        #replace string references with configname and type, create the scripts
-        $content = $baseFunction.replace("ZOBJECTNAMEZ",$configname).Replace("ZOBJECTTYPEZ",$configtype)
+        #replace string references with configname and type, create the scripts.  Use lower case...
+        $content = $baseFunction.replace("ZOBJECTNAMEZ",$configname.tolower()).Replace("ZOBJECTTYPEZ",$configtype.tolower())
         Set-Content -path $filepath -Value $content
     }
 }
