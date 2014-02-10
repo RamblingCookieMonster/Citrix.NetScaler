@@ -131,7 +131,7 @@ Function Get-NSZOBJECTNAMEZZOBJECTTYPEZ {
     }
 
     #Define the URI
-    `$uri = "https://`$address/nitro/v1/config/ZOBJECTNAMEZ/"
+    `$uri = "https://`$address/nitro/v1/ZOBJECTTYPEZ/ZOBJECTNAMEZ/"
     
     if(`$ZOBJECTNAMEZ){
         `$uri += `$ZOBJECTNAMEZ
