@@ -5,7 +5,7 @@ This is a work in progress module for working with the Citrix NetScaler REST API
 
 # Instructions
 
-1. Download this repo, Unblock the file(s), copy the Citrix.NetScaler to an appropriate module location
+1. Download this repo, Unblock the file(s), copy the Citrix.NetScaler folder to an appropriate module location
 2. Run Citrix.NetScaler\AutogenFunctions.ps1 with the appropriate arguments to generate functions.
   * NOTE:  For more information, run Get-Help \\path\to\Citrix.NetScaler\AutogenFunctions.ps1
   * NOTE:  You may skip this step until later if desired.  Details in example.
@@ -103,21 +103,6 @@ This command creates a session on a Citrix NetScaler.  You can use this session 
 ### Get-NSObjectList
 
 This command retrieves a list of configuration (config) or statistical (stat) objects that NetScaler commands revolve around.  There are 876 configuration objects and 85 stat objects.  You can narrow these down when you call AutogenFunctions using the FunctionList argument.
-
-## Property name bug:
-
-If you get an error indicating  'select : Property "some property" cannot be found.', please use the -Raw switch on the command.
-
-The issue is that in general, the NetScaler API returns the object type name (ns).  In some cases, it does not do this.  e.g. The stat with the name ns returns nstrace, instead of ns.
-
-    #I get an error from command below:  'select : Property "ns" cannot be found.'
-    Get-NSnsStat -Address ctx-ns-tst-01 -WebSession $session -AllowHTTPAuth
-        
-    #Adding the -raw switch, I can get the unadulterated Invoke-RESTMethod results, which include an nstrace property:
-    Get-NSnsStat -Address ctx-ns-tst-01 -WebSession $session -AllowHTTPAuth -Raw
-    
-    #To extract the nstrace property, I would run this
-    Get-NSnsStat -Address ctx-ns-tst-01 -WebSession $session -AllowHTTPAuth -Raw | Select -expandproperty nstrace
 
 # TODO
 
