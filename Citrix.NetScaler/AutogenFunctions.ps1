@@ -214,6 +214,7 @@ else{
     #replace address set and default value in existing functions
     $nsobjectpath = Join-Path $FunctionsPath Get-NSObjectList.ps1
     $nssessionpath = Join-Path $FunctionsPath Get-NSSessionCookie.ps1
+    $nsisprimarypath = Join-Path $FunctionsPath Get-NSisPrimary.ps1
     foreach($file in @($nsobjectpath, $nssessionpath)){
         $content = ( Get-Content $file ).replace('$Address = $null',"[validateset($allNetScalerAddressesString)]`n        `$Address = `$null").Replace('$Address = $null',"`$Address = `"$defaultNetScalerAddress`"")
         Set-Content $file $content -force
