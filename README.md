@@ -7,7 +7,7 @@ This is a work in progress module for working with the Citrix NetScaler REST API
 
 1. Download this repo, Unblock the file(s), copy the Citrix.NetScaler folder to an appropriate module location
 2. Run Citrix.NetScaler\AutogenFunctions.ps1 with the appropriate arguments to generate functions.
-  * NOTE:  For more information, run Get-Help \\path\to\Citrix.NetScaler\AutogenFunctions.ps1
+  * NOTE:  For more information, run Get-Help \\path\to\Citrix.NetScaler\AutogenFunctions.ps1 -full
   * NOTE:  You may skip this step until later if desired.  Details in example.
 4. Import-Module Citrix.NetScaler
         
@@ -16,7 +16,7 @@ This is a work in progress module for working with the Citrix NetScaler REST API
 Here are a few examples on how you might run the autogenfuntions.ps1 script
 
     # Quick and Dirty!
-		    # WARNING: generates all 900 + functions, sends credentials in the clear
+		# WARNING: generates all 900 + functions, sends credentials in the clear
         & "\\path\to\Citrix.NetScaler\AutogenFunctions.ps1" -Address YourNetScalerAddressHere -AllowHTTPAuth
    
     # Explore first
@@ -61,7 +61,6 @@ After running the last example, the following files are available in \\path\to\C
             Get-NSservicegroupStat
             Get-NSserviceStat
             Get-NSSessionCookie
-            Set-TrustAllCertsPolicy
         #>
     
     #Create a session on CTX-NS-TST-01.  WARNING: creds sent in clear text when using AllowHTTPAuth!
@@ -82,15 +81,43 @@ After running the last example, the following files are available in \\path\to\C
         #>
         
     #Get stats on services
-    Get-NSserviceStat -Address ctx-ns-tst-01 -WebSession $session -AllowHTTPAuth | Select Name, numofconnections, servername,  servicetype, failedprobes | ft -AutoSize
+        Get-NSserviceStat -Address ctx-ns-tst-01 -WebSession $session -AllowHTTPAuth | Select Name, numofconnections, servername,  servicetype, failedprobes | ft -AutoSize
     
-    <#
-        name             numofconnections servername servicetype failedprobes
-        ----             ---------------- ---------- ----------- ------------
-        svc_someservice1                0 servername1       HTTP            0           
-        svc_someservice2                0 servername2       HTTP            0           
-        ...
-    #>
+        <#
+            name             numofconnections servername servicetype failedprobes
+            ----             ---------------- ---------- ----------- ------------
+            svc_someservice1                0 servername1       HTTP            0           
+            svc_someservice2                0 servername2       HTTP            0           
+            ...
+        #>
+        
+    #Pull all lbvservers, servers, services, servicegroups from ctx-ns-tst-01
+        Invoke-NSCustomQuery -Address "CTX-NS-TST-01" -ResourceType "lbvserver" -WebSession $session
+        Invoke-NSCustomQuery -Address "CTX-NS-TST-01" -ResourceType "server" -WebSession $session
+        Invoke-NSCustomQuery -Address "CTX-NS-TST-01" -ResourceType "service" -WebSession $session
+        Invoke-NSCustomQuery -Address "CTX-NS-TST-01" -ResourceType "servicegroup" -WebSession $session
+
+    #This example illustrates how to disable a server.  Note that this does not save changes!
+        #Build the JSON for a server you want to disable.  !NOTE! you must not indent this.  Remove all indentation.
+        $json = @"
+        {
+            "server": {
+                "name":"SomeServerName"
+            }
+        }
+        "@
+
+        #disable the server specified in $json
+            Invoke-NSCustomQuery -Address "CTX-NS-TST-01" -ResourceType "server" -method Post -Body $json -ContentType application/vnd.com.citrix.netscaler.server+json -AllowHTTPAuth -action disable -verbose -WebSession $session
+            #Note that an error will be returned indicating null output.  Not sure how else to handle this, as null output is usually bad.  Will work on it...
+            
+        #verify the change:
+            Invoke-NSCustomQuery -Address CTX-NS-TST-01 -ResourceType server -ResourceName SomeServerName -WebSession $session -AllowHTTPAuth
+
+    #List all enabled servers on CTX-NS-TST-01
+        Invoke-NSCustomQuery -Address "CTX-NS-TST-01" -ResourceType "server" -FilterTable @{state="ENABLED"}
+    #List all disabled servers on CTX-NS-TST-01
+        Invoke-NSCustomQuery -Address "CTX-NS-TST-01" -ResourceType "server" -FilterTable @{state="DISABLED"}
 
 ## Base Functions
 
@@ -104,11 +131,18 @@ This command creates a session on a Citrix NetScaler.  You can use this session 
 
 This command retrieves a list of configuration (config) or statistical (stat) objects that NetScaler commands revolve around.  There are 876 configuration objects and 85 stat objects.  You can narrow these down when you call AutogenFunctions using the FunctionList argument.
 
+### Get-NSisPrimary
+
+This command determines whether a Citrix NetScaler is the primary or secondary in an HA cluster
+
+### Invoke-NSCustomQuery
+
+This is a general wrapper for Citrix NetScaler queries using the REST API.  For many examples, import the module and run Get-Help Invoke-NSCustomQuery -full.
+
 # TODO
 
 * Functions for configuration changes; for example, Enable/Disabled/Add/Remove-LBVServer/Server, etc.
-* Update [Invoke-NSCustomQuery](http://gallery.technet.microsoft.com/scriptcenter/Invoke-NSCustomQuery-67dd27b5) to leverage sessions and add functionality, add it to this module
-* Further testing, improving existing functionality (e.g. rather than static response handling that breaks Get-NSnsStat, write dynamic response handling)
+* Further testing, improving existing functionality
 * Separate out autogeneration FunctionList argument so that Config and Stat functions can be chosen independently.  As is, 'service' pulls both Get-NSserviceConfig and Get-NSserviceStat
 * Learn how to use GitHub
    
