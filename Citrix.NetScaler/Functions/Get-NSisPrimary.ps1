@@ -95,31 +95,7 @@
 
     #Collect results
         $result = $null
-        $result = $(
-            Try
-            {
-                Invoke-RestMethod @IRMParam
-            }
-            Catch
-            {
-                write-warning "Error calling Invoke-RESTMethod: $_"
-                if($AllowHTTPAuth)
-                {
-                    Try
-                    {
-                        Write-Verbose "Reverting to HTTP"
-                        $IRMParam["uri"] = $uri -replace "^https","http"
-                        Invoke-RestMethod @IRMParam
-                    }
-                    Catch
-                    {
-                        Throw "Fallback to HTTP Failed: $_"
-                        break
-                    }
-
-                }
-            }
-        )
+        $result = CallInvokeRESTMethod -IRMParam $IRMParam -AllowHTTPAuth $AllowHTTPAuth -ErrorAction Stop
 
     #Take action depending on -raw parameter and the data in $result
         if($result)

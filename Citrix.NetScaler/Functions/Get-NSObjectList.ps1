@@ -88,22 +88,7 @@
         }
 
     #Collect results
-        $result = $(
-            Try
-            {
-                Invoke-RestMethod @IRMParam
-            }
-            Catch
-            {
-                write-warning "Error: $_"
-                if($AllowHTTPAuth)
-                {
-                    Write-Verbose "Reverting to HTTP"
-                    $IRMParam["uri"] = $uri -replace "^https","http"
-                    Invoke-RestMethod @IRMParam
-                }
-            }
-        ) 
+        $result = CallInvokeRESTMethod -IRMParam $IRMParam -AllowHTTPAuth $AllowHTTPAuth -ErrorAction Stop
     
     #Expand out the list, or provide full response if we got an unexpected errorcode
         if($result.errorcode -eq 0)

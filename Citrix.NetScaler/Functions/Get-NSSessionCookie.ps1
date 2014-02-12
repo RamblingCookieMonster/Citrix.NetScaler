@@ -69,22 +69,17 @@
 }
 "@
 
+    #Build parameters for Invoke-RESTMethod
+    $IRMParam = @{
+        Uri = $uri
+        Method = "Post"
+        Body = $jsonCred
+        ContentType = "application/json"
+        SessionVariable = "sess"
+    }
+    
     #Invoke the REST Method to get a cookie using 'SessionVariable'
-    $cookie = $(
-        Try
-        {
-            Invoke-RestMethod -Uri $uri -ErrorAction stop -Method Post -Body $jsonCred -ContentType application/json -SessionVariable sess
-        }
-        Catch
-        {
-            write-warning "Error: $_"
-            if($AllowHTTPAuth)
-            {
-                Write-Verbose "Reverting to HTTP"
-                Invoke-RestMethod -Uri ( $uri -replace "^https","http") -ErrorAction stop -Method Post -Body $jsonCred -ContentType application/json -SessionVariable sess
-            }
-        }
-    )
+        $cookie = CallInvokeRESTMethod -IRMParam $IRMParam -AllowHTTPAuth $AllowHTTPAuth -ErrorAction Stop
 
     #If we got a session variable, return it.  Otherwise, display the results in a warning
     if($sess)
