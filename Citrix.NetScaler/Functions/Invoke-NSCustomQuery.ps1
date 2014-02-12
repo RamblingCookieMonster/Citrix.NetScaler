@@ -102,7 +102,11 @@
 
     .EXAMPLE
         
+<<<<<<< HEAD
     #This example illustrates how to disable a server.  Note that this does not save changes!
+=======
+        #This example illustrates how to disable a server.  Note that this does not save changes!
+>>>>>>> ef715549eeba402e33d99695fad4177293b9b1e0
 
         #Build the JSON for a server you want to disable
 $json = @"
@@ -133,10 +137,13 @@ $json = @"
 
     .FUNCTIONALITY
         NetScaler
+<<<<<<< HEAD
 
     .LINK
         http://github.com/RamblingCookieMonster/Citrix.NetScaler
 
+=======
+>>>>>>> ef715549eeba402e33d99695fad4177293b9b1e0
     #>
 [cmdletbinding(
     DefaultParameterSetName='SimpleQuery',
@@ -268,6 +275,10 @@ param(
                 }
             }
         }
+<<<<<<< HEAD
+=======
+
+>>>>>>> ef715549eeba402e33d99695fad4177293b9b1e0
     }
 
     #Define the URI
@@ -352,7 +363,11 @@ param(
     {
         if ($pscmdlet.ShouldProcess("IRM Parameters:`n $($IRMParam | Format-Table -AutoSize -wrap | out-string)", "Invoke-RESTMethod with the following parameters"))
         {
+<<<<<<< HEAD
             $result = Invoke-InvokeRESTMethod
+=======
+            $result =  Invoke-InvokeRESTMethod
+>>>>>>> ef715549eeba402e33d99695fad4177293b9b1e0
         }
         else
         {
@@ -361,7 +376,11 @@ param(
     }
     else
     {
+<<<<<<< HEAD
         $result = Invoke-InvokeRESTMethod
+=======
+        $result =  Invoke-InvokeRESTMethod
+>>>>>>> ef715549eeba402e33d99695fad4177293b9b1e0
     }
 
     #Display the results
