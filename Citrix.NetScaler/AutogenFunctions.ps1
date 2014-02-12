@@ -30,17 +30,20 @@
         Default action for this script is to create 900 + functions based on every single object we find on the NetScaler.  You can limit this to only objects you care about by providing an array of strings here
     
     .PARAMETER TrustAllCertsPolicy
-        Sets your [System.Net.ServicePointManager]::CertificatePolicy to trust all certificates.  Remains in effect for the rest of the session.  See .\Functions\Set-TrustAllCertsPolicy.ps1 for details.  On by default
+        Switch that sets your [System.Net.ServicePointManager]::CertificatePolicy to trust all certificates.  Remains in effect for the rest of the session.  See .\Functions\Set-TrustAllCertsPolicy.ps1 for details.
    
     .PARAMETER AllowHTTPAuth
         Allow HTTP.  Don't specify this uless you want authentication data to potentially be sent in clear text
     
     .NOTES
-        Feel free to move things around.  The function name and script names can be moved around and modified if desired.   
+        Feel free to move things around.  The function name and script names can be moved around and modified if desired.
+
+    .LINK
+        http://github.com/RamblingCookieMonster/Citrix.NetScaler
     #>
 [cmdletbinding()]
 param(
-    [string]$NewModulePath =$(split-path -parent $MyInvocation.MyCommand.Definition),
+    [string]$NewModulePath = $(split-path -parent $MyInvocation.MyCommand.Definition),
 
     [string[]]$allNetScalerAddresses = @( "CTX-NS-01","CTX-NS-02","CTX-NS-03","CTX-NS-04","CTX-NS-TST-01","CTX-NS-TST-02"),
 
@@ -52,7 +55,7 @@ param(
 
     [string[]]$FunctionList = $null,
 
-    [bool]$TrustAllCertsPolicy = $true,
+    [switch]$TrustAllCertsPolicy,
 
     [switch]$AllowHTTPAuth
 )
@@ -102,6 +105,9 @@ Function Get-NSZOBJECTNAMEZZOBJECTTYPEZ {
 
     .FUNCTIONALITY
         NetScaler
+
+    .LINK
+        http://github.com/RamblingCookieMonster/Citrix.NetScaler
     #>
     [cmdletbinding()]
     param(
@@ -127,7 +133,7 @@ Function Get-NSZOBJECTNAMEZZOBJECTTYPEZ {
     #Run Set-TrustAllCertsPolicy unless otherwise specified.
     if( `$TrustAllCertsPolicy )
     {
-        Set-TrustAllCertsPolicy
+        SetTrustAllCertsPolicy
     }
 
     #Define the URI
@@ -204,22 +210,20 @@ if(-not (test-path $FunctionsPath -ErrorAction SilentlyContinue)){
 else{
 
     #replace address set and default value in existing functions
-    $nsobjectpath = Join-Path $FunctionsPath Get-NSObjectList.ps1
-    $nssessionpath = Join-Path $FunctionsPath Get-NSSessionCookie.ps1
-    $nsisprimarypath = Join-Path $FunctionsPath Get-NSisPrimary.ps1
-    foreach($file in @($nsobjectpath, $nssessionpath)){
+    $functionPathList = Get-ChildItem -path $FunctionsPath -filter *-*.ps1 | select -ExpandProperty fullname
+    foreach($file in $functionPathList){
         $content = ( Get-Content $file ).replace('$Address = $null',"[validateset($allNetScalerAddressesString)]`n        `$Address = `$null").Replace('$Address = $null',"`$Address = `"$defaultNetScalerAddress`"")
         Set-Content $file $content -force
     }
 
-    #import functions
+    #import all functions
     Get-ChildItem $FunctionsPath -filter *.ps1 | %{
         . "$($_.fullname)"
     }
 }
 
 if( $TrustAllCertsPolicy ){
-    Set-TrustAllCertsPolicy
+    SetTrustAllCertsPolicy
 }
 
 #build up params for get-ns*
@@ -238,31 +242,43 @@ Catch{
     "Something went wrong: $_"
 }
 if(-not $session){
-    Write-Error: "Something went wrong:  No session obtained on $address"
+    Write-Error: "Something went wrong:  No session obtained on '$address'"
     Break
 }
 
 foreach($configtype in $types){
      
     #List config names. 
-        $ConfigNames = Get-NSObjectList @params -WebSession $session -ObjectType $configtype.ToLower()
-    
-    #If specified, only include the functionlist functions
-    if($FunctionList){
-        $ConfigNames = $ConfigNames | ?{$FunctionList -contains $_}
-    }
-
-    #Loop through config names, generate script content, create file
-    Foreach($configname in $ConfigNames){
-        
-        If(-not (Test-Path $AutogenFunctionsPath -ErrorAction SilentlyContinue)){
-            New-Item $AutogenFunctionsPath -ItemType Directory -force | out-null
+        $ConfigNames = Try{
+            @( Get-NSObjectList @params -WebSession $session -ObjectType $configtype.ToLower() -ErrorAction stop)
         }
-        #Change this name as well if desired by moving around configname and configtype
-        $filepath = Join-Path $AutogenFunctionsPath "Get-NS$configname$configtype.ps1"
+        Catch{
+            Write-Error "Error generating object list for autogenerating functions: $_"
+            continue
+        }
+    
+    if(-not $configNames){
+        Write-Error "No config names pulled from '$address' for $($configtype.ToLower())"
+    }
+        else{
+
+        #If specified, only include the functionlist functions
+        if($FunctionList){
+            $ConfigNames = $ConfigNames | ?{$FunctionList -contains $_}
+        }
+
+        #Loop through config names, generate script content, create file
+        Foreach($configname in $ConfigNames){
         
-        #replace string references with configname and type, create the scripts.  Use lower case...
-        $content = $baseFunction.replace("ZOBJECTNAMEZ",$configname.tolower()).Replace("ZOBJECTTYPEZ",$configtype.tolower())
-        Set-Content -path $filepath -Value $content
+            If(-not (Test-Path $AutogenFunctionsPath -ErrorAction SilentlyContinue)){
+                New-Item $AutogenFunctionsPath -ItemType Directory -force | out-null
+            }
+            #Change this name as well if desired by moving around configname and configtype
+            $filepath = Join-Path $AutogenFunctionsPath "Get-NS$configname$configtype.ps1"
+        
+            #replace string references with configname and type, create the scripts.  Use lower case...
+            $content = $baseFunction.replace("ZOBJECTNAMEZ",$configname.tolower()).Replace("ZOBJECTTYPEZ",$configtype.tolower())
+            Set-Content -path $filepath -Value $content
+        }
     }
 }

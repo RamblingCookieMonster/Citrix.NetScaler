@@ -1,4 +1,4 @@
-﻿Function Get-NSSessionCookie
+Function Get-NSSessionCookie
 {
     <#
     .SYNOPSIS
@@ -24,11 +24,15 @@
 
     .FUNCTIONALITY
         NetScaler
+
+    .LINK
+        http://github.com/RamblingCookieMonster/Citrix.NetScaler
     #>
     [cmdletbinding()]
     param
     (
-        [string]$Address = $null,
+
+        $Address = "CTX-NS-TST-01",
 
         [System.Management.Automation.PSCredential]$Credential = $( Get-Credential -Message "Provide credentials for $Address" ),
 
@@ -42,7 +46,7 @@
 
     if( $TrustAllCertsPolicy )
     {
-        Set-TrustAllCertsPolicy
+        SetTrustAllCertsPolicy
     }
 
     #Define the URI
@@ -79,18 +83,48 @@
     }
     
     #Invoke the REST Method to get a cookie using 'SessionVariable'
-        $cookie = CallInvokeRESTMethod -IRMParam $IRMParam -AllowHTTPAuth $AllowHTTPAuth -ErrorAction Stop
+        Write-Verbose "Running Invoke-RESTMethod with these parameters:`n$($IRMParam | Format-Table -AutoSize -wrap | Out-String)"
+        $cookie = $null
+        $cookie = Try
+            {
+                Invoke-RestMethod @IRMParam
+            }
+    
+            Catch
+            {
+                Write-Warning "Error calling Invoke-RESTMethod.  Fall back to HTTP=$AllowHTTPAuth. Error details:`n $_"
+                if($AllowHTTPAuth)
+                {
+                    Try
+                    {
+                        Write-Verbose "Reverting to HTTP"
+                        $IRMParam["URI"] = $IRMParam["URI"] -replace "^https","http"
+                        Invoke-RestMethod @IRMParam
+                    }
+                    Catch
+                    {
+                        Throw "Fallback to HTTP Failed: $_"
+                        break
+                    }
+                }
+            }
 
-    #If we got a session variable, return it.  Otherwise, display the results in a warning
-    if($sess)
+    if($cookie)
     {
-        #Provide feedback on expiration
-        $date = ( get-date ).AddSeconds($Timeout)
-        Write-Verbose "Cookie set to expire in '$Timeout' seconds, at $date"
-        $sess
+        #If we got a session variable, return it.  Otherwise, display the results in a warning
+        if($sess)
+        {
+            #Provide feedback on expiration
+            $date = ( get-date ).AddSeconds($Timeout)
+            Write-Verbose "Cookie set to expire in '$Timeout' seconds, at $date"
+            $sess
+        }
+        else
+        {
+            Write-Warning "No session created.  Invoke-RESTMethod output:`n$( $cookie | Format-Table -AutoSize -Wrap | Out-String )"
+        }
     }
-    else
-    {
-        Write-Warning "No session created: $( $cookie | Out-String )"
+    else{
+        Write-Error "Invoke-RESTMethod output was empty.  Try troubleshooting with -verbose switch"
     }
 }

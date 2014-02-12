@@ -14,7 +14,7 @@ Function CallInvokeRESTMethod {
     
     Catch
     {
-        Write-Warning "Error calling Invoke-RESTMethod: $_"
+        Write-Warning "Error calling Invoke-RESTMethod. Fall back to HTTP = $AllowHTTPAuth. Error details:`n$_"
         if($AllowHTTPAuth)
         {
             Try

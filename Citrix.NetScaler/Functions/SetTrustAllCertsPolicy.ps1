@@ -1,4 +1,4 @@
-﻿Function Set-TrustAllCertsPolicy {
+﻿Function SetTrustAllCertsPolicy {
     <#
     .SYNOPSIS
         Set CertificatePolicy to trust all certs.  This will remain in effect for this session.

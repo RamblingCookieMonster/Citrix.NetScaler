@@ -1,4 +1,4 @@
-﻿Function Get-NSObjectList
+Function Get-NSObjectList
 {
     <#
     .SYNOPSIS
@@ -35,10 +35,14 @@
 
     .FUNCTIONALITY
         NetScaler
+
+    .LINK
+        http://github.com/RamblingCookieMonster/Citrix.NetScaler
     #>
     [cmdletbinding()]
     param(
-        [string]$Address = $null,
+
+        $Address = "CTX-NS-TST-01",
 
         [System.Management.Automation.PSCredential]$Credential = $null,
 
@@ -66,7 +70,7 @@
 
     if( $TrustAllCertsPolicy )
     {
-        Set-TrustAllCertsPolicy
+        SetTrustAllCertsPolicy
     }
 
     #Define the URI
