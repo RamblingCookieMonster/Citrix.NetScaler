@@ -165,38 +165,30 @@ Function Get-NSZOBJECTNAMEZZOBJECTTYPEZ {
 
 
     #Collect results
-        `$result = `$(
-            Try
-            {
-                Invoke-RestMethod @IRMParam
-            }
-            Catch
-            {
-                write-warning "Error: `$_"
-                if(`$AllowHTTPAuth)
-                {
-                    Write-Verbose "Reverting to HTTP"
-                    `$IRMParam["uri"] = `$uri -replace "^https","http"
-                    Invoke-RestMethod @IRMParam
-                }
-            }
-        )
+        `$result = `$null
+        `$result = CallInvokeRESTMethod -IRMParam `$IRMParam -AllowHTTPAuth `$AllowHTTPAuth -ErrorAction Stop
 
     #Expand out the list, or provide full response if we got an unexpected errorcode
-        if(`$result.errorcode -eq 0 -and -not `$Raw)
+        if(`$result)
         {
-            `$result | select -ExpandProperty ZOBJECTNAMEZ
+            if(`$raw)
+            {
+                `$result
+            }
+            elseif(`$result.errorcode -eq 0)
+            {
+                `$result | select -ExpandProperty ZOBJECTNAMEZ
+            }
+            else
+            {
+                Write-Error "Something went wrong.  Full Invoke-RESTMethod output: `n"
+                `$result
+            }
         }
         else
         {
-            if(-not `$Raw)
-            {
-                Write-Error "Something went wrong"
-            }
-            `$result
+            Write-Error "Invoke-RESTMethod output was empty.  Try troubleshooting with -verbose switch"
         }
-
-
 }
 "@
 

@@ -133,7 +133,8 @@
                 $result
             }
         }
-        else{
+        else
+        {
             Write-Error "Invoke-RESTMethod output was empty.  Try troubleshooting with -verbose switch"
         }
 }

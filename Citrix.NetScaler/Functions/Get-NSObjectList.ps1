@@ -91,14 +91,20 @@
         $result = CallInvokeRESTMethod -IRMParam $IRMParam -AllowHTTPAuth $AllowHTTPAuth -ErrorAction Stop
     
     #Expand out the list, or provide full response if we got an unexpected errorcode
-        if($result.errorcode -eq 0)
+        if($result)
         {
-            $result | select -ExpandProperty "$ObjectType`objects" | select -ExpandProperty objects
+            if($result.errorcode -eq 0)
+            {
+                $result | select -ExpandProperty "$ObjectType`objects" | select -ExpandProperty objects
+            }
+            else
+            {
+                Write-Error "Something went wrong.  Full Invoke-RESTMethod output: `n"
+                $result
+            }
         }
-        else
-        {
-            Write-Error "Something went wrong, output:"
-            $result
+        else{
+            Write-Error "Invoke-RESTMethod output was empty.  Try troubleshooting with -verbose switch"
         }
 
 }
