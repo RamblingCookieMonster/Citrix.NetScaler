@@ -51,6 +51,7 @@ After running the last example, the following files are available in \\path\to\C
     #Get commands from the module.  Output below is from the second autogenerating example:
     Get-Command -Module Citrix.Netscaler | Select -ExpandProperty Name
         <#
+            Get-NSisPrimary
             Get-NSlbvserverConfig
             Get-NSlbvserverStat
             Get-NSnsStat
@@ -61,6 +62,8 @@ After running the last example, the following files are available in \\path\to\C
             Get-NSservicegroupStat
             Get-NSserviceStat
             Get-NSSessionCookie
+            Invoke-NSCustomQuery
+            Save-NSConfig
         #>
     
     #Create a session on CTX-NS-TST-01.  WARNING: creds sent in clear text when using AllowHTTPAuth!
@@ -97,7 +100,7 @@ After running the last example, the following files are available in \\path\to\C
         Invoke-NSCustomQuery -Address "CTX-NS-TST-01" -ResourceType "service" -WebSession $session
         Invoke-NSCustomQuery -Address "CTX-NS-TST-01" -ResourceType "servicegroup" -WebSession $session
 
-    #This example illustrates how to disable a server.  Note that this does not save changes!
+    #This example illustrates how to disable a server and save the NetScaler config
         #Build the JSON for a server you want to disable.  !NOTE! you must not indent this.  Remove all indentation.
         $json = @"
         {
@@ -114,6 +117,9 @@ After running the last example, the following files are available in \\path\to\C
         #verify the change:
             Invoke-NSCustomQuery -Address CTX-NS-TST-01 -ResourceType server -ResourceName SomeServerName -WebSession $session -AllowHTTPAuth
 
+        #Save the config on CTX-NS-TST-01
+            Save-NSConfig -WebSession $session -Address CTX-NS-TST-01 -AllowHTTPAuth
+
     #List all enabled servers on CTX-NS-TST-01
         Invoke-NSCustomQuery -Address "CTX-NS-TST-01" -ResourceType "server" -FilterTable @{state="ENABLED"}
     #List all disabled servers on CTX-NS-TST-01
@@ -123,17 +129,21 @@ After running the last example, the following files are available in \\path\to\C
 
 These functions are available independent of the automatic generation of functions. 
 
-### Get-NSSessionCookie
+### Get-NSisPrimary
 
-This command creates a session on a Citrix NetScaler.  You can use this session until it expires for all the commands in this module, as well as any other REST API calls you run against that NetScaler.
+This command determines whether a Citrix NetScaler is the primary or secondary in an HA cluster
 
 ### Get-NSObjectList
 
 This command retrieves a list of configuration (config) or statistical (stat) objects that NetScaler commands revolve around.  There are 876 configuration objects and 85 stat objects.  You can narrow these down when you call AutogenFunctions using the FunctionList argument.
 
-### Get-NSisPrimary
+### Get-NSSessionCookie
 
-This command determines whether a Citrix NetScaler is the primary or secondary in an HA cluster
+This command creates a session on a Citrix NetScaler.  You can use this session until it expires for all the commands in this module, as well as any other REST API calls you run against that NetScaler.
+
+### Save-NSConfig
+
+This command saves the running config on a Citrix NetScaler.
 
 ### Invoke-NSCustomQuery
 
