@@ -25,6 +25,10 @@ Function Get-NSSessionCookie
     .FUNCTIONALITY
         NetScaler
 
+    .EXAMPLE
+        #Get a session cookie for CTX-NS-TST-02
+            $session = Get-NSSessionCookie -Address ctx-ns-tst-02
+
     .LINK
         http://github.com/RamblingCookieMonster/Citrix.NetScaler
     #>

@@ -24,14 +24,14 @@ Function Get-NSObjectList
 
     .EXAMPLE
         #Create a session on the NetScaler
-        $session = Get-NSSessionCookie -Address "CTX-NS-TST-01"
+            $session = Get-NSSessionCookie -Address "CTX-NS-TST-01"
 
         #Get all config objects on the NetScaler
-        Get-NSObjectList -ObjectType Config -WebSession $session -Address "CTX-NS-TST-01"
+            Get-NSObjectList -ObjectType Config -WebSession $session -Address "CTX-NS-TST-01"
 
     .EXAMPLE
         #Get stat object list from NetScaler, prompt for creds
-        Get-NSObjectList -ObjectType Stat -Credential (Get-Credential) -Address "CTX-NS-TST-01"
+            Get-NSObjectList -ObjectType Stat -Credential (Get-Credential) -Address "CTX-NS-TST-01"
 
     .FUNCTIONALITY
         NetScaler
