@@ -1,25 +1,17 @@
-Function Get-NSObjectList
-{
+Function GetNSisPrimary {
     <#
     .SYNOPSIS
-        Get servers on a NetScaler
+        Get the current HA state for a NetScaler, used in the Connect-NSSessionCookie function to determine if you are connecting to a primary HA pair
 
     .PARAMETER NSSession
-        Required session object from Connect-NSSessionCookie
-
-    .PARAMETER ObjectType
-        Config or List
-
+        Required NSSession object from Connect-NSSessionCookie
+    
     .EXAMPLE
         #Create a session on the NetScaler
             $session = Get-NSSessionCookie -Address "CTX-NS-TST-01"
 
-        #Get all config objects on the NetScaler
-            $session | Get-NSObjectList -ObjectType Config
-
-    .EXAMPLE
-        #Get stat object list from NetScaler, prompt for creds
-            Get-NSObjectList -NSSession $session -ObjectType stat
+        #$true or $false depending on whether ctx-ns-tst-01 is the primary in an HA cluster
+            GetNSisPrimary -NSSession $session
 
     .FUNCTIONALITY
         NetScaler
@@ -29,16 +21,13 @@ Function Get-NSObjectList
     #>
     [CmdletBinding()]
     Param(
-        [validateset("config","stat")]
-        [string]$ObjectType = "config"
+        [Parameter(ValueFromPipeline,Mandatory=$true)]
+        [Microsoft.PowerShell.Commands.WebRequestSession]$NSSession
     )
 
-    #Check for $NSSession
-    ValidateNSSession
-
     #Define the URI
-    $Uri = "https://$($NSSession.Address)/nitro/v1/$ObjectType/"
-
+    $Uri = "https://$($NSSession.Address)/nitro/v1/stat/ns/"
+    
     #Build up invoke-Restmethod parameters based on input
     $IRMParam = @{
         Method = "Get"
@@ -47,15 +36,24 @@ Function Get-NSObjectList
         ErrorAction = "Stop" 
     }
 
-    #Collect results
+    #Collect Results
+    $Result = $null
     $Result = CallInvokeRESTMethod -IRMParam $IRMParam -AllowHTTPAuth $NSSession.AllowHTTPAuth -ErrorAction Stop
-    
-    #Expand out the list, or provide full response if we got an unexpected errorcode
+
+    #Take action depending on -raw parameter and the data in $Result
     If ($Result)
     {
-        If ($Result.errorcode -eq 0)
+        #Result exists with no error
+        If($Result.errorcode -eq 0)
         {
-            $Result | Select -ExpandProperty "$ObjectType`objects" | Select -ExpandProperty objects
+            If ($Result.ns.hacurmasterstate -eq "Primary")
+            {
+                $true
+            }
+            Else
+            {
+                $false
+            }
         }
         Else
         {
@@ -63,7 +61,7 @@ Function Get-NSObjectList
             $Result
         }
     }
-    Else
+    else
     {
         Write-Error "Invoke-RESTMethod output was empty.  Try troubleshooting with -verbose switch"
     }

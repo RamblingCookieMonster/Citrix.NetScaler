@@ -25,8 +25,7 @@ Function CallInvokeRESTMethod {
             }
             Catch
             {
-                Throw "Fallback to HTTP Failed: $_"
-                break
+                Write-Error "Fallback to HTTP Failed: $($Error[0])"
             }
         }
     }
