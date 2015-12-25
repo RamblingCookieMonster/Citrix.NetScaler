@@ -163,7 +163,6 @@ $json = @"
 
         [Parameter( ParameterSetName='SimpleQuery' )]
         [Parameter( ParameterSetName='AdvancedQuery' )]
-        [validatescript({$_ -notmatch "\W"})]
         [string]$ResourceName = $null,
     
         [Parameter( ParameterSetName='SimpleQuery' )]
@@ -206,11 +205,12 @@ $json = @"
 
     #Define default views
     $DefaultView = @{
-        "server" = @("Name","IPAddress")
-        "lbmonitor" = @("MonitorName","Type")
-        "service" = @("Name","ServerName","ServiceType","Port","SvrState")
-        "servicegroup" = @("ServiceGroupName","ServiceType","ServiceGroupEffectiveState")
-        "lbvserver" = @("Name","IPv46","ServiceType","EffectiveState")
+        "server"        = @("Name","IPAddress")
+        "lbmonitor"     = @("Name","Type")
+        "service"       = @("Name","ServerName","ServiceType","Port","SvrState")
+        "servicegroup"  = @("Name","ServiceType","ServiceGroupEffectiveState")
+        "lbvserver"     = @("Name","IPv46","ServiceType","EffectiveState")
+        "csvserver"     = @("Name","IPv46","ServiceType","Port")
     }
 
     #Define the URI
@@ -317,10 +317,22 @@ $json = @"
             If ($Result.$ResourceType){
                 #expand the resourcetype
                 $Output = $Result | select -ExpandProperty $ResourceType -ErrorAction stop
+
+                #Normalize Name of the service to Name property
+                Switch ($ResourceType)
+                {
+                    "lbmonitor"     { $Output = $Output | Select @{Name="Name";Expression={ $_.MonitorName }},* -ExcludeProperty MonitorName; Break }
+                    "servicegroup"  { $Output = $Output | Select @{Name="Name";Expression={ $_.servicegroupname }},* -ExcludeProperty servicegroupname; Break }
+                }
+
+                #Add default object view for readability
                 If ($DefaultView[$ResourceType])
                 {
                     $Output | Add-Member MemberSet PSStandardMembers ([System.Management.Automation.PSMemberInfo[]]@(New-Object System.Management.Automation.PSPropertySet("DefaultDisplayPropertySet",[String[]]@($DefaultView[$ResourceType]))))
                 }
+                #Add ResourceType to object, used in later functions
+                $Output | Add-Member -MemberType NoteProperty -Name ResourceType -Value $ResourceType
+
                 Write-Output $Output
             }
             ElseIf ($Result.errorcode -ne 0)
