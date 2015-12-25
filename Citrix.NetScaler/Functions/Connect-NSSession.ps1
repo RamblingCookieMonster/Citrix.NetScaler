@@ -1,4 +1,4 @@
-Function Get-NSSessionCookie
+Function Connect-NSSession
 {
     <#
     .SYNOPSIS
@@ -27,50 +27,35 @@ Function Get-NSSessionCookie
 
     .EXAMPLE
         #Get a session cookie for CTX-NS-TST-02
-            $session = Get-NSSessionCookie -Address ctx-ns-tst-02
+            $NSSession = Connect-NSSession -Address ctx-ns-tst-02
 
     .LINK
         http://github.com/RamblingCookieMonster/Citrix.NetScaler
     #>
-    [cmdletbinding()]
-    param
+    [CmdletBinding()]
+    Param
     (
-
-        $Address = "CTX-NS-TST-01",
-
+        [Parameter(Mandatory=$true)]
+        [string]$Address,
         [System.Management.Automation.PSCredential]$Credential = $( Get-Credential -Message "Provide credentials for $Address" ),
-
         [int]$Timeout = 3600,
-
         [switch]$AllowHTTPAuth,
-
         [bool]$TrustAllCertsPolicy = $true
-
     )
 
-    if( $TrustAllCertsPolicy )
+    If ($TrustAllCertsPolicy)
     {
         SetTrustAllCertsPolicy
     }
 
     #Define the URI
-    $uri = "https://$address/nitro/v1/config/login/"
+    $Uri = "https://$Address/nitro/v1/config/login/"
     
-    #Extract the username, take into account domain names
-    If($Credential -match "\\")
-    {
-        $user = $Credential.username.split("\")[1]
-    }
-    Else
-    {
-        $user = $Credential.username.split("\")[0]
-    }
-
     #Build the login json
     $jsonCred = @"
 {
     "login":  {
-                  "username":  "$user",
+                  "username":  "$($Credential.UserName)",
                   "password":  "$($Credential.GetNetworkCredential().password)",
                   "timeout": $timeout
               }
@@ -79,7 +64,7 @@ Function Get-NSSessionCookie
 
     #Build parameters for Invoke-RESTMethod
     $IRMParam = @{
-        Uri = $uri
+        Uri = $Uri
         Method = "Post"
         Body = $jsonCred
         ContentType = "application/json"
@@ -87,48 +72,61 @@ Function Get-NSSessionCookie
     }
     
     #Invoke the REST Method to get a cookie using 'SessionVariable'
-        Write-Verbose "Running Invoke-RESTMethod with these parameters:`n$($IRMParam | Format-Table -AutoSize -wrap | Out-String)"
-        $cookie = $null
-        $cookie = Try
+    Write-Verbose "Running Invoke-RESTMethod with these parameters:`n$($IRMParam | Format-Table -AutoSize -wrap | Out-String)"
+    $cookie = $null
+    $cookie = Try
+    {
+        Invoke-RestMethod @IRMParam
+    }
+    
+    Catch
+    {
+        Write-Warning "Error calling Invoke-RESTMethod.  Fall back to HTTP=$AllowHTTPAuth. Error details:`n $_"
+        if($AllowHTTPAuth)
+        {
+            Try
             {
+                Write-Verbose "Reverting to HTTP"
+                $IRMParam["URI"] = $IRMParam["URI"] -replace "^https","http"
                 Invoke-RestMethod @IRMParam
             }
-    
             Catch
             {
-                Write-Warning "Error calling Invoke-RESTMethod.  Fall back to HTTP=$AllowHTTPAuth. Error details:`n $_"
-                if($AllowHTTPAuth)
-                {
-                    Try
-                    {
-                        Write-Verbose "Reverting to HTTP"
-                        $IRMParam["URI"] = $IRMParam["URI"] -replace "^https","http"
-                        Invoke-RestMethod @IRMParam
-                    }
-                    Catch
-                    {
-                        Throw "Fallback to HTTP Failed: $_"
-                        break
-                    }
-                }
+                Throw "Fallback to HTTP Failed: $_"
             }
-
-    if($cookie)
-    {
-        #If we got a session variable, return it.  Otherwise, display the results in a warning
-        if($sess)
-        {
-            #Provide feedback on expiration
-            $date = ( get-date ).AddSeconds($Timeout)
-            Write-Verbose "Cookie set to expire in '$Timeout' seconds, at $date"
-            $sess
-        }
-        else
-        {
-            Write-Warning "No session created.  Invoke-RESTMethod output:`n$( $cookie | Format-Table -AutoSize -Wrap | Out-String )"
         }
     }
-    else{
+
+    If ($Cookie)
+    {
+        #If we got a session variable, return it.  Otherwise, display the results in a warning
+        If ($sess)
+        {
+            #Provide feedback on expiration
+            $Date = (Get-Date).AddSeconds($Timeout)
+            Write-Verbose "Cookie set to expire in '$Timeout' seconds, at $Date"
+            #Add Address to the object for later functions
+            $sess | Add-Member -MemberType NoteProperty -Name Address -Value $Address
+            $sess | Add-Member -MemberType NoteProperty -Name AllowHTTPAuth -Value $AllowHTTPAuth
+
+            #Now check if server is Primary
+            If (($sess | GetNSisPrimary))
+            {
+                $Global:NSSession = $sess
+                $Global:NSEnumeration = Get-NSObjectList
+
+            }
+            Else
+            {
+                Write-Error "$Address is not primary in the HA pair, aborting connection"
+            }
+        }
+        Else
+        {
+            Write-Warning "No session created.  Invoke-RESTMethod output:`n$( $Cookie | Format-Table -AutoSize -Wrap | Out-String )"
+        }
+    }
+    Else{
         Write-Error "Invoke-RESTMethod output was empty.  Try troubleshooting with -verbose switch"
     }
 }

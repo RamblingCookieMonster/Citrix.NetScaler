@@ -138,199 +138,134 @@ $json = @"
         http://github.com/RamblingCookieMonster/Citrix.NetScaler
 
     #>
-[cmdletbinding(
-    DefaultParameterSetName='SimpleQuery',
-    SupportsShouldProcess=$true,
-    ConfirmImpact='High'
-)]
-param(
-
-    [Parameter()]
-    [validateset("CTX-NS-01","CTX-NS-02","CTX-NS-03","CTX-NS-04","CTX-NS-TST-01","CTX-NS-TST-02")]
-        [string]$Address = "CTX-NS-TST-01",
-
-    [Parameter()]
-        [System.Management.Automation.PSCredential]$Credential = $null,
-
-    [Parameter()]
-        [Microsoft.PowerShell.Commands.WebRequestSession]$WebSession = $null,
-    
-    [Parameter()]
-    [validateset("config","stat")]
+    [CmdletBinding(
+        DefaultParameterSetName='SimpleQuery',
+        SupportsShouldProcess=$true,
+        ConfirmImpact='High'
+    )]
+    Param (
+        [validateset("config","stat")]
         [string]$QueryType="config",
 
-    [Parameter( ParameterSetName='List' )]
-        [switch]$list,
+        [Parameter( ParameterSetName='List' )]
+        [switch]$List,
 
-    [Parameter( ParameterSetName='SimpleQuery' )]
-    [Parameter( ParameterSetName='AdvancedQuery' )]
-    [validatescript({$_ -notmatch "\W"})]
+        [Parameter( ParameterSetName='SimpleQuery' )]
+        [Parameter( ParameterSetName='AdvancedQuery' )]
+        [ValidateScript({
+            If ($Global:NSEnumeration -contains $_)
+            {
+                $true
+            }
+        })]
+        #[validatescript({$_ -notmatch "\W"})]
         [string]$ResourceType = $null,
 
-    [Parameter( ParameterSetName='SimpleQuery' )]
-    [Parameter( ParameterSetName='AdvancedQuery' )]
-    [validatescript({$_ -notmatch "\W"})]
+        [Parameter( ParameterSetName='SimpleQuery' )]
+        [Parameter( ParameterSetName='AdvancedQuery' )]
         [string]$ResourceName = $null,
     
-    [Parameter( ParameterSetName='SimpleQuery' )]
-    [Parameter( ParameterSetName='AdvancedQuery' )]
-    [validatescript({$_ -notmatch "\W"})]
+        [Parameter( ParameterSetName='SimpleQuery' )]
+        [Parameter( ParameterSetName='AdvancedQuery' )]
+        [validatescript({$_ -notmatch "\W"})]
         [string]$Argument = $null,
 
-    [Parameter( ParameterSetName='SimpleQuery' )]
-    [Parameter( ParameterSetName='AdvancedQuery' )]
-    [validatescript({
-        #We don't want any non word characters as a key...
-        #values are harder to test, e.g. could be an IP...
-        foreach($key in $_.keys){
-            if($key -match "\W"){
-                Throw "`nError:`n`FilterTable contains key '$key' with a non-word character"
+        [Parameter( ParameterSetName='SimpleQuery' )]
+        [Parameter( ParameterSetName='AdvancedQuery' )]
+        [validatescript({
+            #We don't want any non word characters as a key...
+            #values are harder to test, e.g. could be an IP...
+            foreach($key in $_.keys){
+                if($key -match "\W"){
+                    Throw "`nError:`n`FilterTable contains key '$key' with a non-word character"
+                }
             }
-        }
-        $true
-    })]
+            $true
+        })]
         [System.Collections.Hashtable]$FilterTable = $null,
     
-    [Parameter()]
+        [Parameter()]
         [switch]$Raw,
 
-    [Parameter( ParameterSetName='AdvancedQuery' )]
+        [Parameter( ParameterSetName='AdvancedQuery' )]
         [Microsoft.PowerShell.Commands.WebRequestMethod]$Method = "Get",
 
-    [Parameter( ParameterSetName='AdvancedQuery' )]
+        [Parameter( ParameterSetName='AdvancedQuery' )]
         [string]$ContentType = $null,
 
-    [Parameter( ParameterSetName='AdvancedQuery' )]
+        [Parameter( ParameterSetName='AdvancedQuery' )]
         [string]$Body = $null,
 
-    [Parameter( ParameterSetName='AdvancedQuery' )]
+        [Parameter( ParameterSetName='AdvancedQuery' )]
         [string]$Headers = $null,
 
-    [Parameter( ParameterSetName='AdvancedQuery' )]
-        [string]$Action = $null,
+        [Parameter( ParameterSetName='AdvancedQuery' )]
+        [string]$Action = $null
+    )
 
-    [Parameter()]
-        [switch]$AllowHTTPAuth,
-
-    [Parameter()]
-        [bool]$TrustAllCertsPolicy = $true
-
-)
-
-    if(-not $WebSession -and -not $Credential)
-    {
-        Write-Warning "No WebSession or Credential provided.  Please provide credentials"
-        $Credential = $( Get-Credential -Message "Provide credentials for '$Address'" )
-        if(-not $Credential)
-        {
-            break
-        }
-    }
-
-    #Run Set-TrustAllCertsPolicy unless otherwise specified.
-    if( $TrustAllCertsPolicy )
-    {
-        Try{
-            #Dependency on GitHub repo https://github.com/RamblingCookieMonster/Citrix.NetScaler
-            Set-TrustAllCertsPolicy -ErrorAction stop
-        }
-        Catch{
-            Write-Warning "Set-TrustAllCertsPolicy does not exist or produced an error.  Proceeding.  Details: $_"
-        }
-
-    }
-
-    #Function to invoke rest method and fall back to HTTP if needed and specified
-    Function Invoke-InvokeRESTMethod {
-        [cmdletbinding()]
-        param($IRMParam = $IRMParam, $AllowHTTPAuth = $AllowHTTPAuth)
-        
-        Try
-        { 
-            Invoke-RestMethod @IRMParam
-        }
-        
-        Catch
-        {
-            Write-Warning "Error calling Invoke-RESTMethod: $_"
-            if($AllowHTTPAuth)
-            {
-                Try
-                {
-                    Write-Verbose "Reverting to HTTP"
-                    $IRMParam["URI"] = $IRMParam["URI"] -replace "^https","http"
-                    Invoke-RestMethod @IRMParam
-                }
-                Catch
-                {
-                    Throw "Fallback to HTTP Failed: $_"
-                    break
-                }
-            }
-        }
+    #Define default views
+    $DefaultView = @{
+        "server"        = @("Name","IPAddress")
+        "lbmonitor"     = @("Name","Type")
+        "service"       = @("Name","ServerName","ServiceType","Port","SvrState")
+        "servicegroup"  = @("Name","ServiceType","ServiceGroupEffectiveState")
+        "lbvserver"     = @("Name","IPv46","ServiceType","EffectiveState")
+        "csvserver"     = @("Name","IPv46","ServiceType","Port")
     }
 
     #Define the URI
-    $uri = "https://$address/nitro/v1/$($QueryType.tolower())/"
+    $Uri = "https://$($NSSession.Address)/nitro/v1/$($QueryType.tolower())/"
     
     #Build up the URI for non-list queries
-    if(-not $list)
+    If (-not $List)
     {
         
         #Add the resource type
-        if($ResourceType)
+        If ($ResourceType)
         {
-            
             Write-Verbose "Added ResourceType $ResourceType to URI"
-            $uri += "$($ResourceType.tolower())/"
+            $Uri += "$($ResourceType.tolower())/"
             
             #Allow a resourcename to be specified
-            if($ResourceName)
+            If ($ResourceName)
             {
                 Write-Verbose "Added ResourceName $ResourceName to URI"
-                $uri += "$($ResourceName.tolower())/"
+                $Uri += "$($ResourceName.tolower())/"
             }
             #Add an argument (e.g. a valid lbvserver for lbvserver_binding resource)
-            elseif($Argument)
+            ElseIf ($Argument)
             {
                 Write-Verbose "Added Argument $Argument to URI"
-                $uri += "$Argument"
+                $Uri += "$Argument"
             }
         }
 
         #Create a filter string from the provided hash table
         if($FilterTable)
         {
-            $uri = $uri.TrimEnd("/")
-            $uri += "?filter="
-            $uri += $(
-                foreach($key in $FilterTable.keys)
-                    {
-                        "$key`:$($FilterTable[$key])"
-                    }
+            $Uri = $Uri.TrimEnd("/")
+            $Uri += "?filter="
+            $Uri += $(
+                ForEach ($Key in $FilterTable.Keys)
+                {
+                    "$Key`:$($FilterTable[$Key])"
+                }
             ) -join ","
         }
-        elseif($Action)
+        ElseIf ($Action)
         {
-            $uri = $uri.TrimEnd("/")
+            $Uri = $Uri.TrimEnd("/")
             #Add tolower()?
-            $uri += "?action=$Action"
+            $Uri += "?action=$Action"
         }
     }
 
     #Build up invoke-Restmethod parameters based on input
     $IRMParam = @{
         Method = $Method
-        URI = $URI
+        URI = $Uri
+        WebSession = $NSSession
         ErrorAction = "Stop"
-    }
-    If($Credential)
-    {
-        $IRMParam.add("Credential",$Credential)
-    }
-    If($WebSession)
-    {
-        $IRMParam.add("WebSession",$WebSession)
     }
     If($ContentType)
     {
@@ -348,53 +283,66 @@ param(
     Write-Verbose "Invoke-RESTMethod params: $($IRMParam | Format-Table -AutoSize -wrap | out-string)"
     
     #Invoke the REST Method
-    if($PsCmdlet.ParameterSetName -eq "AdvancedQuery")
+    If ($PsCmdlet.ParameterSetName -eq "AdvancedQuery")
     {
-        if ($pscmdlet.ShouldProcess("IRM Parameters:`n $($IRMParam | Format-Table -AutoSize -wrap | out-string)", "Invoke-RESTMethod with the following parameters"))
+        If ($PsCmdlet.ShouldProcess("IRM Parameters:`n $($IRMParam | Format-Table -AutoSize -wrap | out-string)", "Invoke-RESTMethod with the following parameters"))
         {
-            $result = Invoke-InvokeRESTMethod
+            $Result = CallInvokeRESTMethod
         }
-        else
+        Else
         {
             break
         }
     }
-    else
+    Else
     {
-        $result = Invoke-InvokeRESTMethod
+        $Result = CallInvokeRESTMethod
     }
 
     #Display the results
-    if($result)
+    If ($Result)
     {
-        if($raw)
+        If ($Raw)
         {
             #user wants raw output from invoke-restmethod
-            $result
+            $Result
         }
-        elseif($list)
+        ElseIf ($List)
         {
             #list parameterset, expand the properties!
-            $result | select -ExpandProperty "$QueryType`objects" | select -ExpandProperty objects
+            $Result | select -ExpandProperty "$QueryType`objects" | select -ExpandProperty objects
         }
-        elseif($ResourceType)
+        ElseIf ($ResourceType)
         {
-            if($result.$ResourceType){
+            If ($Result.$ResourceType){
                 #expand the resourcetype
-                $result | select -ExpandProperty $ResourceType -ErrorAction stop
+                $Output = $Result | select -ExpandProperty $ResourceType -ErrorAction stop
+
+                #Normalize Name of the service to Name property
+                Switch ($ResourceType)
+                {
+                    "lbmonitor"     { $Output = $Output | Select @{Name="Name";Expression={ $_.MonitorName }},* -ExcludeProperty MonitorName; Break }
+                    "servicegroup"  { $Output = $Output | Select @{Name="Name";Expression={ $_.servicegroupname }},* -ExcludeProperty servicegroupname; Break }
+                }
+
+                #Add default object view for readability
+                If ($DefaultView[$ResourceType])
+                {
+                    $Output | Add-Member MemberSet PSStandardMembers ([System.Management.Automation.PSMemberInfo[]]@(New-Object System.Management.Automation.PSPropertySet("DefaultDisplayPropertySet",[String[]]@($DefaultView[$ResourceType]))))
+                }
+                #Add ResourceType to object, used in later functions
+                $Output | Add-Member -MemberType NoteProperty -Name ResourceType -Value $ResourceType
+
+                Write-Output $Output
             }
-            elseif($result.errorcode -eq 0)
-            {
-                Return $null
-            }
-            else
+            ElseIf ($Result.errorcode -ne 0)
             {
                 Write-Error "Result did not have expected property '$ResourceType' and errorcode mismatch.  Invoke-RESTMethod output:`n"
-                $result
+                $Result
             }
         }
     }
-    else
+    Else
     {
         Write-Error "Invoke-RESTMethod output was empty.  Try troubleshooting with -verbose switch"
     }
